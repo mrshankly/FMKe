@@ -27,7 +27,6 @@
     antidotec_pb,
     eredis,
     eredis_cluster,
-    erlcass,
     riak_pb
 ]).
 
