@@ -5,7 +5,7 @@
   1},
  {<<"antidotec_pb">>,
   {git,"https://github.com/mrshankly/antidote-erlang-client.git",
-       {ref,"01d67d6f4edd85ff3bf5bc373c7e139cbe75f484"}},
+       {ref,"e145e9a63c448f9d8ae0d245710e461277c70a2c"}},
   0},
  {<<"cowboy">>,{pkg,<<"cowboy">>,<<"2.8.0">>},0},
  {<<"cowlib">>,{pkg,<<"cowlib">>,<<"2.9.1">>},1},
