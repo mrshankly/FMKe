@@ -23,6 +23,7 @@
 %% Stores the default drivers for each database.
 %% These typically only get updated once a new database is supported.
 -define(DEFAULT_DRIVER, #{
+    aql =>              fmke_driver_opt_aql,
     antidote =>         fmke_driver_opt_antidote,
     antidote_secure =>  fmke_driver_opt_antidote_secure,
     cassandra =>        fmke_driver_opt_cassandra,
@@ -35,6 +36,7 @@
 
 %% Add your driver to this list if you wish to use FMKe's connection manager
 -define(REQUIRE_CONN_MANAGER, [
+    fmke_driver_opt_aql,
     fmke_driver_opt_antidote,
     fmke_driver_opt_antidote_secure,
     fmke_driver_opt_redis_crdb,
@@ -83,6 +85,7 @@ requires_ets_table(Driver) ->
     lists:member(Driver, ?REQUIRE_ETS).
 
 -spec get_client_lib(Driver::module()) -> atom().
+get_client_lib(fmke_driver_opt_aql) ->              aqlc;
 get_client_lib(fmke_driver_opt_antidote) ->         antidotec_pb_socket;
 get_client_lib(fmke_driver_opt_antidote_secure) ->  antidotec_pb_socket;
 get_client_lib(fmke_driver_opt_redis_crdb) ->       eredis;
@@ -98,6 +101,7 @@ driver_adapter(Driver) ->
     end.
 
 db_from_driver(fmke_driver_ets) -> ets;
+db_from_driver(fmke_driver_opt_aql) -> aql;
 db_from_driver(fmke_driver_opt_antidote) -> antidote;
 db_from_driver(fmke_driver_opt_antidote_secure) -> antidote_secure;
 db_from_driver(fmke_driver_opt_riak_kv) -> riak;

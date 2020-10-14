@@ -1,0 +1,5 @@
+CREATE UPDATE-WINS TABLE fmke_patients (
+    ID int PRIMARY KEY,
+    Name varchar,
+    Address varchar,
+);
