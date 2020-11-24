@@ -3,3 +3,56 @@ CREATE UPDATE-WINS TABLE fmke_patients (
     Name varchar,
     Address varchar,
 );
+
+CREATE UPDATE-WINS TABLE fmke_pharmacies (
+    ID int PRIMARY KEY,
+    Name varchar,
+    Address varchar,
+);
+
+CREATE UPDATE-WINS TABLE fmke_medical_staff (
+    ID int PRIMARY KEY,
+    Name varchar,
+    Address varchar,
+    Speciality varchar,
+);
+
+CREATE UPDATE-WINS TABLE fmke_treatment_facilities (
+    ID int PRIMARY KEY,
+    Name varchar,
+    Address varchar,
+    Type varchar,
+);
+
+CREATE UPDATE-WINS TABLE fmke_prescriptions (
+    ID int PRIMARY KEY,
+    PatID int,
+    DocID int,
+    PharmID int,
+    DatePrescribed varchar,
+    DateProcessed varchar
+);
+
+CREATE UPDATE-WINS TABLE fmke_patient_prescriptions (
+    ID int PRIMARY KEY,
+    PatientID int,
+    PrescriptionID int
+);
+
+CREATE UPDATE-WINS TABLE fmke_pharmacy_prescriptions (
+    ID int PRIMARY KEY,
+    PharmacyID int,
+    PrescriptionID int
+);
+
+CREATE UPDATE-WINS TABLE fmke_staff_prescriptions (
+    ID int PRIMARY KEY,
+    StaffID int,
+    PrescriptionID int
+);
+
+CREATE UPDATE-WINS TABLE fmke_prescription_drugs (
+    ID int PRIMARY KEY,
+    PrescriptionID int,
+    Drug varchar
+);
