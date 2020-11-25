@@ -1,30 +1,30 @@
-CREATE UPDATE-WINS TABLE fmke_patients (
+CREATE UPDATE-WINS TABLE FmkePatients (
+    ID int PRIMARY KEY,
+    Name varchar,
+    Address varchar
+);
+
+CREATE UPDATE-WINS TABLE FmkePharmacies (
+    ID int PRIMARY KEY,
+    Name varchar,
+    Address varchar
+);
+
+CREATE UPDATE-WINS TABLE FmkeMedicalStaff (
     ID int PRIMARY KEY,
     Name varchar,
     Address varchar,
+    Speciality varchar
 );
 
-CREATE UPDATE-WINS TABLE fmke_pharmacies (
+CREATE UPDATE-WINS TABLE FmkeTreatmentFacilities (
     ID int PRIMARY KEY,
     Name varchar,
     Address varchar,
+    Type varchar
 );
 
-CREATE UPDATE-WINS TABLE fmke_medical_staff (
-    ID int PRIMARY KEY,
-    Name varchar,
-    Address varchar,
-    Speciality varchar,
-);
-
-CREATE UPDATE-WINS TABLE fmke_treatment_facilities (
-    ID int PRIMARY KEY,
-    Name varchar,
-    Address varchar,
-    Type varchar,
-);
-
-CREATE UPDATE-WINS TABLE fmke_prescriptions (
+CREATE UPDATE-WINS TABLE FmkePrescriptions (
     ID int PRIMARY KEY,
     PatID int,
     DocID int,
@@ -33,25 +33,25 @@ CREATE UPDATE-WINS TABLE fmke_prescriptions (
     DateProcessed varchar
 );
 
-CREATE UPDATE-WINS TABLE fmke_patient_prescriptions (
+CREATE UPDATE-WINS TABLE FmkePatientPrescriptions (
     ID int PRIMARY KEY,
     PatientID int,
     PrescriptionID int
 );
 
-CREATE UPDATE-WINS TABLE fmke_pharmacy_prescriptions (
+CREATE UPDATE-WINS TABLE FmkePharmacyPrescriptions (
     ID int PRIMARY KEY,
     PharmacyID int,
     PrescriptionID int
 );
 
-CREATE UPDATE-WINS TABLE fmke_staff_prescriptions (
+CREATE UPDATE-WINS TABLE FmkeStaffPrescriptions (
     ID int PRIMARY KEY,
     StaffID int,
     PrescriptionID int
 );
 
-CREATE UPDATE-WINS TABLE fmke_prescription_drugs (
+CREATE UPDATE-WINS TABLE FmkePrescriptionDrugs (
     ID int PRIMARY KEY,
     PrescriptionID int,
     Drug varchar
