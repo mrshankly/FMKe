@@ -298,7 +298,38 @@ call({update, prescription, Id, {drugs, add, Drugs}}, EntityID) ->
     end;
 
 call({create, prescription, [Id, PatientId, PrescriberId, PharmacyId, DatePrescribed, Drugs]}, EntityID) ->
-    {todo, EntityID};
+    CheckResult = check_keys(
+        [
+            {prescription, fun read_prescription/1, Id}
+        ],
+        [
+            {patient, fun read_patient/1, PatientId},
+            {pharmacy, fun read_pharmacy/1, PharmacyId},
+            {staff, fun read_staff/1, PrescriberId}
+        ]
+    ),
+
+    case CheckResult of
+        ok ->
+            create_prescription(Id, PatientId, PrescriberId, PharmacyId, DatePrescribed),
+            
+            create_pat_presc(EntityID, PatientId, Id),
+            create_pharm_presc(EntityID + 1, PharmacyId, Id),
+            create_staff_presc(EntityID + 2, PrescriberId, Id),
+            
+            NewEntityID = lists:foldl(fun(Drug, NewID) ->
+                create_presc_drugs(NewID, Id, Drug),
+                NewID + 1
+            end, EntityID + 3, Drugs),
+
+            {ok, NewEntityID};
+        {exists, Entity} ->
+            {{error, id_taken(Entity)}, EntityID};
+        {missing, Entity} ->
+            {{error, no_such_entity(Entity)}, EntityID};
+        {error, Reason} ->
+            {{error, Reason}, EntityID}
+    end;
 
 call(_, _) ->
     throw(not_implemented).
@@ -599,3 +630,24 @@ make_prescription(ID, PatID, DocID, PharmID, DatePrescribed, DateProcessed, Drug
                 ?PRESCRIPTION_PROCESSED_VALUE
         end
     }.
+
+check_keys([], []) ->
+    ok;
+check_keys([], [{Entity, Fn, Id} | Rest]) ->
+    case Fn(Id) of
+        {error, not_found} ->
+            {missing, Entity};
+        {ok, _} ->
+            check_keys([], Rest);
+        {error, Reason} ->
+            {error, Reason}
+    end;
+check_keys([{Entity, Fn, Id} | Rest], ShouldExist) ->
+    case Fn(Id) of
+        {error, not_found} ->
+            check_keys(Rest, ShouldExist);
+        {ok, _} ->
+            {exists, Entity};
+        {error, Reason} ->
+            {error, Reason}
+    end.

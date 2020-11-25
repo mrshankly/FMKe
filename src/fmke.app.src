@@ -14,8 +14,7 @@
     jsx
    ]},
   {included_applications, [
-    % TODOAQL
-    % aqlc,
+    aqlc,
     antidotec_pb,
     riak_client,
     eredis_cluster
