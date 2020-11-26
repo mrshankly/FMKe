@@ -5,7 +5,7 @@ echo "compiling FMKe..."
 rebar3 compile
 # Start FMK:
 echo "starting FMKe..."
-_build/default/rel/fmke/bin/env start
+_build/default/rel/fmke/bin/env foreground
 
 # wait some time for FMKe to start
 echo "waiting for FMKe to start..."

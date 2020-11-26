@@ -32,6 +32,7 @@ handle_call(_Msg, _From, State) ->
     {noreply, State}.
 
 handle_cast({Op, Client}, {EntityID}) ->
+    % lager:info("NEW CAST~n  Op: ~p~n  EntityID: ~p~n", [Op, EntityID]),
     {Reply, NewEntityID} = call(Op, EntityID),
     gen_server:reply(Client, Reply),
     poolboy:checkin(handlers, self()),
@@ -561,63 +562,72 @@ create_facility(Conn, ID, Name, Address, Type) ->
         "insert into FmkeTreatmentFacilities (ID,Name,Address,Type) VALUES (~B,'~s','~s','~s')",
         [ID, Name, Address, Type]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 create_patient(Conn, ID, Name, Address) ->
     Query = io_lib:format(
         "insert into FmkePatients (ID,Name,Address) VALUES (~B,'~s','~s')",
         [ID, Name, Address]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 create_pharmacy(Conn, ID, Name, Address) ->
     Query = io_lib:format(
         "insert into FmkePharmacies (ID,Name,Address) VALUES (~B,'~s','~s')",
         [ID, Name, Address]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 create_staff(Conn, ID, Name, Address, Speciality) ->
     Query = io_lib:format(
         "insert into FmkeMedicalStaff (ID,Name,Address,Speciality) VALUES (~B,'~s','~s','~s')",
         [ID,Name,Address,Speciality]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 create_prescription(Conn, ID, PatID, DocID, PharmID, DatePrescribed) ->
     Query = io_lib:format(
         "insert into FmkePrescriptions (ID,PatID,DocID,PharmID,DatePrescribed,DateProcessed) VALUES (~B,~B,~B,~B,'~s','')",
         [ID,PatID,DocID,PharmID,DatePrescribed]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 create_presc_drugs(Conn, ID, PrescriptionID, Drug) ->
     Query = io_lib:format(
-        "insert into FmkePrescriptionDrugs (PrescriptionID,Drug) VALUES (~B,~B,'~s')",
+        "insert into FmkePrescriptionDrugs (ID, PrescriptionID, Drug) VALUES (~B,~B,'~s')",
         [ID,PrescriptionID,Drug]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 create_pat_presc(Conn, ID, PatientID, PrescriptionID) ->
     Query = io_lib:format(
-        "insert into FmkePatientPrescriptions (PatientID,PrescriptionID) VALUES (~B,~B,~B)",
+        "insert into FmkePatientPrescriptions (ID, PatientID, PrescriptionID) VALUES (~B,~B,~B)",
         [ID,PatientID,PrescriptionID]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 create_pharm_presc(Conn, ID, PharmacyID, PrescriptionID) ->
     Query = io_lib:format(
-        "insert into FmkePharmacyPrescriptions (PharmacyID,PrescriptionID) VALUES (~B,~B,~B)",
+        "insert into FmkePharmacyPrescriptions (ID, PharmacyID, PrescriptionID) VALUES (~B,~B,~B)",
         [ID,PharmacyID,PrescriptionID]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 create_staff_presc(Conn, ID, StaffID, PrescriptionID) ->
     Query = io_lib:format(
-        "insert into FmkeStaffPrescriptions (StaffID,PrescriptionID) VALUES (~B,~B,~B)",
+        "insert into FmkeStaffPrescriptions (ID, StaffID, PrescriptionID) VALUES (~B,~B,~B)",
         [ID,StaffID,PrescriptionID]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 %% Updates
 
@@ -626,35 +636,40 @@ update_facility(Conn, ID, Name, Address, Type) ->
         "update FmkeTreatmentFacilities set Name = '~s', Address = '~s', Type = '~s' where ID = ~B",
         [Name, Address, Type, ID]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 update_patient(Conn, ID, Name, Address) ->
     Query = io_lib:format(
         "update FmkePatients set Name = '~s', Address = '~s' where ID = ~B",
         [Name, Address, ID]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 update_pharmacy(Conn, ID, Name, Address) ->
     Query = io_lib:format(
         "update FmkePharmacies set Name = '~s', Address = '~s' where ID = ~B",
         [Name, Address, ID]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 update_staff(Conn, ID, Name, Address, Speciality) ->
     Query = io_lib:format(
         "update FmkeMedicalStaff set Name = '~s', Address = '~s', Speciality = '~s' where ID = ~B",
         [Name, Address, Speciality, ID]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 process_prescription(Conn, ID, DateProcessed) ->
     Query = io_lib:format(
         "update FmkePrescriptions set DateProcessed = '~s' where ID = ~B",
         [DateProcessed, ID]
     ),
-    aqlc:query(Conn, Query).
+    {ok, ok} = aqlc:query(Conn, Query),
+    ok.
 
 no_such_entity(facility) ->     no_such_facility;
 no_such_entity(patient) ->      no_such_patient;

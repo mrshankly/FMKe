@@ -2,7 +2,7 @@
 %% Database driver for AQL, an SQL-like interface for AntidoteDB.
 %% --------------------------------------------------------------
 
--module(fmke_driver_opt_aql).
+-module(fmke_driver_opt_aql_secure).
 
 -behaviour(gen_server).
 
