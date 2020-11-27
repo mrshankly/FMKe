@@ -754,5 +754,5 @@ commit_and_clean(Conn, Transaction) ->
             lager:warning("AQL transaction failed: ~p~n", [Reason]),
             {error, aborted}
     end,
-    fmke_db_conn_manager:checkin(),
+    fmke_db_conn_manager:checkin(Conn),
     Result.

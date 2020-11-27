@@ -9,7 +9,7 @@
   0},
  {<<"aqlc">>,
   {git,"https://github.com/mrshankly/aqlc.git",
-       {ref,"0f2a2c1cb81e70c2256ce414e2e370a6693d33d3"}},
+       {ref,"7e88d66780fc2ab6b9979f119eac1c1ad51d1c87"}},
   0},
  {<<"cowboy">>,{pkg,<<"cowboy">>,<<"2.8.0">>},0},
  {<<"cowlib">>,{pkg,<<"cowlib">>,<<"2.9.1">>},1},
