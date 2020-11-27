@@ -40,9 +40,10 @@ handle_cast({Op, Client}, {EntityID}) ->
 
 call({read, patient, Id}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_patient(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_patient(Conn, Tx, Id) of
         {ok, {Id, Name, Address}} ->
-            Prescriptions = case read_pat_presc_ids(Conn, Id) of
+            Prescriptions = case read_pat_presc_ids(Conn, Tx, Id) of
                 {ok, P} when is_list(P) ->
                     P;
                 _Error ->
@@ -52,14 +53,15 @@ call({read, patient, Id}, EntityID) ->
         Error ->
             {Error, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    commit_and_clean(Conn, Tx),
     Result;
 
 call({read, pharmacy, Id}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_pharmacy(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_pharmacy(Conn, Tx, Id) of
         {ok, {Id, Name, Address}} ->
-            Prescriptions = case read_pharm_presc_ids(Conn, Id) of
+            Prescriptions = case read_pharm_presc_ids(Conn, Tx, Id) of
                 {ok, P} when is_list(P) ->
                     P;
                 _Error ->
@@ -69,25 +71,27 @@ call({read, pharmacy, Id}, EntityID) ->
         Error ->
             {Error, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    commit_and_clean(Conn, Tx),
     Result;
 
 call({read, facility, Id}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_facility(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_facility(Conn, Tx, Id) of
         {ok, {Id, Name, Address, Type}} ->
             {#facility{id = Id, name = Name, address = Address, type = Type}, EntityID};
         Error ->
             {Error, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    commit_and_clean(Conn, Tx),
     Result;
 
 call({read, staff, Id}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_staff(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_staff(Conn, Tx, Id) of
         {ok, {Id, Name, Address, Speciality}} ->
-            Prescriptions = case read_staff_presc_ids(Conn, Id) of
+            Prescriptions = case read_staff_presc_ids(Conn, Tx, Id) of
                 {ok, P} when is_list(P) ->
                     P;
                 _Error ->
@@ -97,125 +101,134 @@ call({read, staff, Id}, EntityID) ->
         Error ->
             {Error, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    commit_and_clean(Conn, Tx),
     Result;
 
 call({create, facility, [Id, Name, Address, Type]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_facility(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_facility(Conn, Tx, Id) of
         {error, not_found} ->
-            {create_facility(Conn, Id, Name, Address, Type), EntityID};
+            {create_facility(Conn, Tx, Id, Name, Address, Type), EntityID};
         {ok, _Facility} ->
             {{error, id_taken(facility)}, EntityID};
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({update, facility, [Id, Name, Address, Type]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_facility(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_facility(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(facility)}, EntityID};
         {ok, _Facility} ->
-            {update_facility(Conn, Id, Name, Address, Type), EntityID};
+            {update_facility(Conn, Tx, Id, Name, Address, Type), EntityID};
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({create, patient, [Id, Name, Address]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_patient(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_patient(Conn, Tx, Id) of
         {error, not_found} ->
-            {create_patient(Conn, Id, Name, Address), EntityID};
+            {create_patient(Conn, Tx, Id, Name, Address), EntityID};
         {ok, _Patient} ->
             {{error, id_taken(patient)}, EntityID};
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({update, patient, [Id, Name, Address]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_patient(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_patient(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(patient)}, EntityID};
         {ok, _Patient} ->
-            {update_patient(Conn, Id, Name, Address), EntityID};
+            {update_patient(Conn, Tx, Id, Name, Address), EntityID};
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({create, pharmacy, [Id, Name, Address]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_pharmacy(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_pharmacy(Conn, Tx, Id) of
         {error, not_found} ->
-            {create_pharmacy(Conn, Id, Name, Address), EntityID};
+            {create_pharmacy(Conn, Tx, Id, Name, Address), EntityID};
         {ok, _Pharmacy} ->
             {{error, id_taken(pharmacy)}, EntityID};
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({update, pharmacy, [Id, Name, Address]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_pharmacy(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_pharmacy(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(pharmacy)}, EntityID};
         {ok, _Pharmacy} ->
-            {update_pharmacy(Conn, Id, Name, Address), EntityID};
+            {update_pharmacy(Conn, Tx, Id, Name, Address), EntityID};
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({create, staff, [Id, Name, Address, Speciality]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_staff(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_staff(Conn, Tx, Id) of
         {error, not_found} ->
-            {create_staff(Conn, Id, Name, Address, Speciality), EntityID};
+            {create_staff(Conn, Tx, Id, Name, Address, Speciality), EntityID};
         {ok, _Staff} ->
             {{error, id_taken(staff)}, EntityID};
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({update, staff, [Id, Name, Address, Speciality]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_staff(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_staff(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(staff)}, EntityID};
         {ok, _Staff} ->
-            {update_staff(Conn, Id, Name, Address, Speciality), EntityID};
+            {update_staff(Conn, Tx, Id, Name, Address, Speciality), EntityID};
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({read, staff, Id, prescriptions}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_staff(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_staff(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(staff)}, EntityID};
         {ok, _Staff} ->
-            case read_staff_presc_ids(Conn, Id) of
+            case read_staff_presc_ids(Conn, Tx, Id) of
                 {ok, P} when is_list(P) ->
                     Prescriptions = lists:map(fun(PrescriptionId) ->
                         {ok, {_, PatID, DocID, PharmID, DatePrescribed, DateProcessed}} =
-                            read_prescription(Conn, PrescriptionId),
-                        {ok, Drugs} = read_presc_drugs(Conn, PrescriptionId),
+                            read_prescription(Conn, Tx, PrescriptionId),
+                        {ok, Drugs} = read_presc_drugs(Conn, Tx, PrescriptionId),
                         make_prescription(PrescriptionId, PatID, DocID, PharmID, DatePrescribed, DateProcessed, Drugs)
                     end, P),
                     {Prescriptions, EntityID};
@@ -225,21 +238,22 @@ call({read, staff, Id, prescriptions}, EntityID) ->
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    commit_and_clean(Conn, Tx),
     Result;
 
 call({read, pharmacy, Id, prescriptions}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_pharmacy(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_pharmacy(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(pharmacy)}, EntityID};
         {ok, _Pharmacy} ->
-            case read_pharm_presc_ids(Conn, Id) of
+            case read_pharm_presc_ids(Conn, Tx, Id) of
                 {ok, P} when is_list(P) ->
                     Prescriptions = lists:map(fun(PrescriptionId) ->
                         {ok, {_, PatID, DocID, PharmID, DatePrescribed, DateProcessed}} =
-                            read_prescription(Conn, PrescriptionId),
-                        {ok, Drugs} = read_presc_drugs(Conn, PrescriptionId),
+                            read_prescription(Conn, Tx, PrescriptionId),
+                        {ok, Drugs} = read_presc_drugs(Conn, Tx, PrescriptionId),
                         make_prescription(PrescriptionId, PatID, DocID, PharmID, DatePrescribed, DateProcessed, Drugs)
                     end, P),
                     {Prescriptions, EntityID};
@@ -247,21 +261,22 @@ call({read, pharmacy, Id, prescriptions}, EntityID) ->
                     {[], EntityID}
             end
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    commit_and_clean(Conn, Tx),
     Result;
 
 call({read, pharmacy, Id, processed_prescriptions}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_pharmacy(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_pharmacy(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(pharmacy)}, EntityID};
         {ok, _Pharmacy} ->
-            case read_pharm_presc_ids(Conn, Id) of
+            case read_pharm_presc_ids(Conn, Tx, Id) of
                 {ok, P} when is_list(P) ->
                     AllPrescriptions = lists:map(fun(PrescriptionId) ->
                         {ok, {_, PatID, DocID, PharmID, DatePrescribed, DateProcessed}} =
-                            read_prescription(Conn, PrescriptionId),
-                        {ok, Drugs} = read_presc_drugs(Conn, PrescriptionId),
+                            read_prescription(Conn, Tx, PrescriptionId),
+                        {ok, Drugs} = read_presc_drugs(Conn, Tx, PrescriptionId),
                         make_prescription(PrescriptionId, PatID, DocID, PharmID, DatePrescribed, DateProcessed, Drugs)
                     end, P),
                     ProcessedPrescriptions = lists:filter(fun(Presc) ->
@@ -272,16 +287,17 @@ call({read, pharmacy, Id, processed_prescriptions}, EntityID) ->
                     {[], EntityID}
             end
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    commit_and_clean(Conn, Tx),
     Result;
 
 call({read, prescription, Id}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_prescription(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_prescription(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(prescription)}, EntityID};
         {ok, {_, PatID, DocID, PharmID, DatePrescribed, DateProcessed}} ->
-            case read_presc_drugs(Conn, Id) of
+            case read_presc_drugs(Conn, Tx, Id) of
                 {ok, Drugs} when is_list(Drugs) ->
                     {make_prescription(Id, PatID, DocID, PharmID, DatePrescribed, DateProcessed, Drugs), EntityID};
                 {error, Reason} ->
@@ -290,16 +306,17 @@ call({read, prescription, Id}, EntityID) ->
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    commit_and_clean(Conn, Tx),
     Result;
 
 call({read, prescription, Id, [drugs]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_prescription(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_prescription(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(prescription)}, EntityID};
         {ok, _Prescription} ->
-            case read_presc_drugs(Conn, Id) of
+            case read_presc_drugs(Conn, Tx, Id) of
                 {ok, Drugs} when is_list(Drugs) ->
                     {Drugs, EntityID};
                 {error, Reason} ->
@@ -308,12 +325,13 @@ call({read, prescription, Id, [drugs]}, EntityID) ->
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    commit_and_clean(Conn, Tx),
     Result;
 
 call({update, prescription, Id, {date_processed, NewDateProcessed}}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_prescription(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_prescription(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(prescription)}, EntityID};
         {ok, {_, PatID, DocID, PharmID, DatePrescribed, DateProcessed}} ->
@@ -322,17 +340,18 @@ call({update, prescription, Id, {date_processed, NewDateProcessed}}, EntityID) -
                 ?PRESCRIPTION_PROCESSED_VALUE ->
                     {{error, prescription_already_processed}, EntityID};
                 ?PRESCRIPTION_NOT_PROCESSED_VALUE ->
-                    {process_prescription(Conn, Id, NewDateProcessed), EntityID}
+                    {process_prescription(Conn, Tx, Id, NewDateProcessed), EntityID}
             end;
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({update, prescription, Id, {drugs, add, Drugs}}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
-    Result = case read_prescription(Conn, Id) of
+    {ok, Tx} = aqlc:start_transaction(Conn),
+    Result = case read_prescription(Conn, Tx, Id) of
         {error, not_found} ->
             {{error, no_such_entity(prescription)}, EntityID};
         {ok, {_, PatID, DocID, PharmID, DatePrescribed, DateProcessed}} ->
@@ -342,7 +361,7 @@ call({update, prescription, Id, {drugs, add, Drugs}}, EntityID) ->
                     {{error, prescription_already_processed}, EntityID};
                 ?PRESCRIPTION_NOT_PROCESSED_VALUE ->
                     NewEntityID = lists:foldl(fun(Drug, NewID) ->
-                        create_presc_drugs(Conn, NewID, Id, Drug),
+                        create_presc_drugs(Conn, Tx, NewID, Id, Drug),
                         NewID + 1
                     end, EntityID, Drugs),
                     {ok, NewEntityID}
@@ -350,33 +369,34 @@ call({update, prescription, Id, {drugs, add, Drugs}}, EntityID) ->
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call({create, prescription, [Id, PatientId, PrescriberId, PharmacyId, DatePrescribed, Drugs]}, EntityID) ->
     Conn = fmke_db_conn_manager:checkout(),
+    {ok, Tx} = aqlc:start_transaction(Conn),
     CheckResult = check_keys(
-        Conn,
+        Conn, Tx,
         [
-            {prescription, fun read_prescription/2, Id}
+            {prescription, fun read_prescription/3, Id}
         ],
         [
-            {patient, fun read_patient/2, PatientId},
-            {pharmacy, fun read_pharmacy/2, PharmacyId},
-            {staff, fun read_staff/2, PrescriberId}
+            {patient, fun read_patient/3, PatientId},
+            {pharmacy, fun read_pharmacy/3, PharmacyId},
+            {staff, fun read_staff/3, PrescriberId}
         ]
     ),
 
     Result = case CheckResult of
         ok ->
-            create_prescription(Conn, Id, PatientId, PrescriberId, PharmacyId, DatePrescribed),
+            create_prescription(Conn, Tx, Id, PatientId, PrescriberId, PharmacyId, DatePrescribed),
             
-            create_pat_presc(Conn, EntityID, PatientId, Id),
-            create_pharm_presc(Conn, EntityID + 1, PharmacyId, Id),
-            create_staff_presc(Conn, EntityID + 2, PrescriberId, Id),
+            create_pat_presc(Conn, Tx, EntityID, PatientId, Id),
+            create_pharm_presc(Conn, Tx, EntityID + 1, PharmacyId, Id),
+            create_staff_presc(Conn, Tx, EntityID + 2, PrescriberId, Id),
             
             NewEntityID = lists:foldl(fun(Drug, NewID) ->
-                create_presc_drugs(Conn, NewID, Id, Drug),
+                create_presc_drugs(Conn, Tx, NewID, Id, Drug),
                 NewID + 1
             end, EntityID + 3, Drugs),
 
@@ -388,7 +408,7 @@ call({create, prescription, [Id, PatientId, PrescriberId, PharmacyId, DatePrescr
         {error, Reason} ->
             {{error, Reason}, EntityID}
     end,
-    fmke_db_conn_manager:checkin(Conn),
+    ok = commit_and_clean(Conn, Tx),
     Result;
 
 call(_, _) ->
@@ -396,12 +416,12 @@ call(_, _) ->
 
 %% Queries
 
-read_patient(Conn, ID) ->
+read_patient(Conn, Transaction, ID) ->
     Query = io_lib:format(
         "select ID,Name,Address from FmkePatients where ID = ~B;",
         [ID]
     ),
-    case aqlc:query(Conn, Query) of
+    case aqlc:query(Conn, Query, Transaction) of
         {ok, [[]]} ->
             {error, not_found};
         {ok, [[Patient]]} when is_list(Patient) ->
@@ -412,12 +432,12 @@ read_patient(Conn, ID) ->
             {error, query_failed}
     end.
 
-read_pat_presc_ids(Conn, PatientID) ->
+read_pat_presc_ids(Conn, Transaction, PatientID) ->
     Query = io_lib:format(
         "select PrescriptionID from FmkePatientPrescriptions where PatientID = ~B;",
         [PatientID]
     ),
-    case aqlc:query(Conn, Query) of
+    case aqlc:query(Conn, Query, Transaction) of
         {ok, [[]]} ->
             {ok, []};
         {ok, [Prescriptions]} when is_list(Prescriptions) ->
@@ -429,12 +449,12 @@ read_pat_presc_ids(Conn, PatientID) ->
             {error, query_failed}
     end.
 
-read_pharmacy(Conn, ID) ->
+read_pharmacy(Conn, Transaction, ID) ->
     Query = io_lib:format(
         "select ID,Name,Address from FmkePharmacies where ID = ~B;",
         [ID]
     ),
-    case aqlc:query(Conn, Query) of
+    case aqlc:query(Conn, Query, Transaction) of
         {ok, [[]]} ->
             {error, not_found};
         {ok, [[Pharmacy]]} when is_list(Pharmacy) ->
@@ -445,12 +465,12 @@ read_pharmacy(Conn, ID) ->
             {error, query_failed}
     end.
 
-read_pharm_presc_ids(Conn, PharmacyID) ->
+read_pharm_presc_ids(Conn, Transaction, PharmacyID) ->
     Query = io_lib:format(
         "select PrescriptionID from FmkePharmacyPrescriptions where PharmacyID = ~B",
         [PharmacyID]
     ),
-    case aqlc:query(Conn, Query) of
+    case aqlc:query(Conn, Query, Transaction) of
         {ok, [[]]} ->
             {ok, []};
         {ok, [Prescriptions]} when is_list(Prescriptions) ->
@@ -462,12 +482,12 @@ read_pharm_presc_ids(Conn, PharmacyID) ->
             {error, query_failed}
     end.
 
-read_facility(Conn, ID) ->
+read_facility(Conn, Transaction, ID) ->
     Query = io_lib:format(
         "select ID,Name,Address,Type from FmkeTreatmentFacilities where ID = ~B",
         [ID]
     ),
-    case aqlc:query(Conn, Query) of
+    case aqlc:query(Conn, Query, Transaction) of
         {ok, [[]]} ->
             {error, not_found};
         {ok, [[Facility]]} when is_list(Facility) ->
@@ -481,12 +501,12 @@ read_facility(Conn, ID) ->
             {error, query_failed}
     end.
 
-read_prescription(Conn, ID) ->
+read_prescription(Conn, Transaction, ID) ->
     Query = io_lib:format(
         "select ID,PatID,DocID,PharmID,DatePrescribed,DateProcessed from FmkePrescriptions where ID = ~B",
         [ID]
     ),
-    case aqlc:query(Conn, Query) of
+    case aqlc:query(Conn, Query, Transaction) of
         {ok, [[]]} ->
             {error, not_found};
         {ok, [[Prescription]]} when is_list(Prescription) ->
@@ -502,12 +522,12 @@ read_prescription(Conn, ID) ->
             {error, query_failed}
     end.
 
-read_presc_drugs(Conn, PrescriptionID) ->
+read_presc_drugs(Conn, Transaction, PrescriptionID) ->
     Query = io_lib:format(
         "select Drug from FmkePrescriptionDrugs where PrescriptionID = ~B",
         [PrescriptionID]
     ),
-    case aqlc:query(Conn, Query) of
+    case aqlc:query(Conn, Query, Transaction) of
         {ok, [[]]} ->
             {ok, []};
         {ok, [Drugs]} when is_list(Drugs) ->
@@ -519,12 +539,12 @@ read_presc_drugs(Conn, PrescriptionID) ->
             {error, query_failed}
     end.
 
-read_staff(Conn, ID) ->
+read_staff(Conn, Transaction, ID) ->
     Query = io_lib:format(
         "select ID,Name,Address,Speciality from FmkeMedicalStaff where ID = ~B",
         [ID]
     ),
-    case aqlc:query(Conn, Query) of
+    case aqlc:query(Conn, Query, Transaction) of
         {ok, [[]]} ->
             {error, not_found};
         {ok, [[Staff]]} when is_list(Staff) ->
@@ -538,12 +558,12 @@ read_staff(Conn, ID) ->
             {error, query_failed}
     end.
 
-read_staff_presc_ids(Conn, StaffID) ->
+read_staff_presc_ids(Conn, Transaction, StaffID) ->
     Query = io_lib:format(
         "select PrescriptionID from FmkeStaffPrescriptions where StaffID = ~B",
         [StaffID]
     ),
-    case aqlc:query(Conn, Query) of
+    case aqlc:query(Conn, Query, Transaction) of
         {ok, [[]]} ->
             {ok, []};
         {ok, [Prescriptions]} when is_list(Prescriptions) ->
@@ -557,118 +577,118 @@ read_staff_presc_ids(Conn, StaffID) ->
 
 %% Creates
 
-create_facility(Conn, ID, Name, Address, Type) ->
+create_facility(Conn, Transaction, ID, Name, Address, Type) ->
     Query = io_lib:format(
         "insert into FmkeTreatmentFacilities (ID,Name,Address,Type) VALUES (~B,'~s','~s','~s')",
         [ID, Name, Address, Type]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-create_patient(Conn, ID, Name, Address) ->
+create_patient(Conn, Transaction, ID, Name, Address) ->
     Query = io_lib:format(
         "insert into FmkePatients (ID,Name,Address) VALUES (~B,'~s','~s')",
         [ID, Name, Address]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-create_pharmacy(Conn, ID, Name, Address) ->
+create_pharmacy(Conn, Transaction, ID, Name, Address) ->
     Query = io_lib:format(
         "insert into FmkePharmacies (ID,Name,Address) VALUES (~B,'~s','~s')",
         [ID, Name, Address]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-create_staff(Conn, ID, Name, Address, Speciality) ->
+create_staff(Conn, Transaction, ID, Name, Address, Speciality) ->
     Query = io_lib:format(
         "insert into FmkeMedicalStaff (ID,Name,Address,Speciality) VALUES (~B,'~s','~s','~s')",
         [ID,Name,Address,Speciality]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-create_prescription(Conn, ID, PatID, DocID, PharmID, DatePrescribed) ->
+create_prescription(Conn, Transaction, ID, PatID, DocID, PharmID, DatePrescribed) ->
     Query = io_lib:format(
         "insert into FmkePrescriptions (ID,PatID,DocID,PharmID,DatePrescribed,DateProcessed) VALUES (~B,~B,~B,~B,'~s','')",
         [ID,PatID,DocID,PharmID,DatePrescribed]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-create_presc_drugs(Conn, ID, PrescriptionID, Drug) ->
+create_presc_drugs(Conn, Transaction, ID, PrescriptionID, Drug) ->
     Query = io_lib:format(
         "insert into FmkePrescriptionDrugs (ID, PrescriptionID, Drug) VALUES (~B,~B,'~s')",
         [ID,PrescriptionID,Drug]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-create_pat_presc(Conn, ID, PatientID, PrescriptionID) ->
+create_pat_presc(Conn, Transaction, ID, PatientID, PrescriptionID) ->
     Query = io_lib:format(
         "insert into FmkePatientPrescriptions (ID, PatientID, PrescriptionID) VALUES (~B,~B,~B)",
         [ID,PatientID,PrescriptionID]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-create_pharm_presc(Conn, ID, PharmacyID, PrescriptionID) ->
+create_pharm_presc(Conn, Transaction, ID, PharmacyID, PrescriptionID) ->
     Query = io_lib:format(
         "insert into FmkePharmacyPrescriptions (ID, PharmacyID, PrescriptionID) VALUES (~B,~B,~B)",
         [ID,PharmacyID,PrescriptionID]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-create_staff_presc(Conn, ID, StaffID, PrescriptionID) ->
+create_staff_presc(Conn, Transaction, ID, StaffID, PrescriptionID) ->
     Query = io_lib:format(
         "insert into FmkeStaffPrescriptions (ID, StaffID, PrescriptionID) VALUES (~B,~B,~B)",
         [ID,StaffID,PrescriptionID]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
 %% Updates
 
-update_facility(Conn, ID, Name, Address, Type) ->
+update_facility(Conn, Transaction, ID, Name, Address, Type) ->
     Query = io_lib:format(
         "update FmkeTreatmentFacilities set Name = '~s', Address = '~s', Type = '~s' where ID = ~B",
         [Name, Address, Type, ID]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-update_patient(Conn, ID, Name, Address) ->
+update_patient(Conn, Transaction, ID, Name, Address) ->
     Query = io_lib:format(
         "update FmkePatients set Name = '~s', Address = '~s' where ID = ~B",
         [Name, Address, ID]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-update_pharmacy(Conn, ID, Name, Address) ->
+update_pharmacy(Conn, Transaction, ID, Name, Address) ->
     Query = io_lib:format(
         "update FmkePharmacies set Name = '~s', Address = '~s' where ID = ~B",
         [Name, Address, ID]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-update_staff(Conn, ID, Name, Address, Speciality) ->
+update_staff(Conn, Transaction, ID, Name, Address, Speciality) ->
     Query = io_lib:format(
         "update FmkeMedicalStaff set Name = '~s', Address = '~s', Speciality = '~s' where ID = ~B",
         [Name, Address, Speciality, ID]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
-process_prescription(Conn, ID, DateProcessed) ->
+process_prescription(Conn, Transaction, ID, DateProcessed) ->
     Query = io_lib:format(
         "update FmkePrescriptions set DateProcessed = '~s' where ID = ~B",
         [DateProcessed, ID]
     ),
-    {ok, ok} = aqlc:query(Conn, Query),
+    {ok, ok} = aqlc:query(Conn, Query, Transaction),
     ok.
 
 no_such_entity(facility) ->     no_such_facility;
@@ -705,23 +725,34 @@ make_prescription(ID, PatID, DocID, PharmID, DatePrescribed, DateProcessed, Drug
         end
     }.
 
-check_keys(_, [], []) ->
+check_keys(_, _, [], []) ->
     ok;
-check_keys(Conn, [], [{Entity, Fn, Id} | Rest]) ->
-    case Fn(Conn, Id) of
+check_keys(Conn, Tx, [], [{Entity, Fn, Id} | Rest]) ->
+    case Fn(Conn, Tx, Id) of
         {error, not_found} ->
             {missing, Entity};
         {ok, _} ->
-            check_keys(Conn, [], Rest);
+            check_keys(Conn, Tx, [], Rest);
         {error, Reason} ->
             {error, Reason}
     end;
-check_keys(Conn, [{Entity, Fn, Id} | Rest], ShouldExist) ->
-    case Fn(Conn, Id) of
+check_keys(Conn, Tx, [{Entity, Fn, Id} | Rest], ShouldExist) ->
+    case Fn(Conn, Tx, Id) of
         {error, not_found} ->
-            check_keys(Conn, Rest, ShouldExist);
+            check_keys(Conn, Tx, Rest, ShouldExist);
         {ok, _} ->
             {exists, Entity};
         {error, Reason} ->
             {error, Reason}
     end.
+
+commit_and_clean(Conn, Transaction) ->
+    Result = case aqlc:commit_transaction(Conn, Transaction) of
+        ok ->
+            ok;
+        {error, Reason} ->
+            lager:warning("AQL transaction failed: ~p~n", [Reason]),
+            {error, aborted}
+    end,
+    fmke_db_conn_manager:checkin(),
+    Result.
